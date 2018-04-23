@@ -29,15 +29,32 @@ public class verifyThread extends Thread{
 
     private boolean verifyTime(Record record) {//此处验证需要扩展，比如时间上后面的先于前面的到达，需要进行重新入队处理，目前仅做简单处理
         String key=byteToString(record.getLockScript());
-        if (byteToInt(freshRecord.get(key).getTime())<byteToInt(record.getTime()))
-            return true;
-        return false;
+        boolean resflag = false;
+        if (byteToInt(freshRecord.get(key).getTime())<byteToInt(record.getTime())) {
+        	if( byteToInt(record.getTime())>(errorTime -NTPTime) && byteToInt(record.getTime()) <= (errorTime + NTPTime)) 
+        		resflag = true;
+        	System.out.println("该记录时间上先于前面记录到达，将其重新入队");
+        }
+            
+        else {
+            effectiveRecord.add(record);
+            System.out.println("已将该记录重新入队");
+        }
+		return resflag;
     }
     private boolean verifyStamp(Record record) {//此处验证需要扩展，比如顺序上后面的先于前面的到达，需要进行重新入队处理
         String key=byteToString(record.getLockScript());
-        if (byteToInt(freshRecord.get(key).getOrderStamp())+1==byteToInt(record.getOrderStamp()))
-            return true;
-        return false;
+        boolean resflag = false;
+        if (byteToInt(freshRecord.get(key).getOrderStamp())+1==byteToInt(record.getOrderStamp())) {
+        	resflag = true;
+        	System.out.println("该记录顺序上先于前面记录到达，将其重新入队");
+        }           
+        else {
+        	effectiveRecord.add(record);
+        	System.out.println("已将该记录重新入队");
+        }
+		return resflag;
+        	
     }
 
 }

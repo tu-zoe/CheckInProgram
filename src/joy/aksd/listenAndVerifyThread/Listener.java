@@ -24,6 +24,7 @@ import static joy.aksd.tools.toByte.intToByte;
 import static joy.aksd.tools.toInt.byteToInt;
 import static joy.aksd.tools.toLong.byteToLong;
 import static joy.aksd.tools.toString.byteToString;
+import static joy.aksd.tools.checkRecord.verifyScriptRecord;
 
 /** 监听线程
  * Created by EnjoyD on 2017/5/2.
@@ -31,7 +32,7 @@ import static joy.aksd.tools.toString.byteToString;
 public class Listener extends Thread {
     @Override
     public void run() {
-        System.out.println("-----123123123123");
+        System.out.println("-----服务启动");
         ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(PORT);
@@ -667,57 +668,6 @@ class handleThread implements Runnable {
             //转发
             new BroadcastRecord(record,(this.socket.getRemoteSocketAddress().toString().split(":")[0]).substring(1),ttl,true).start();
         }
-    }
-
-    private boolean verifyScriptRecord(Record record) {
-        MessageDigest digest= null;
-        try {
-            digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        //获得解锁脚本
-        byte [] unLockScrpit=record.getUnLockScript();
-        //获得锁定脚本
-        byte [] LockScript=record.getLockScript();
-        //验证公钥hash
-        byte [] tem=new byte[40];
-        System.arraycopy(unLockScrpit,0,tem,0,40);
-        byte [] temHash=digest.digest(tem);
-        if (!Arrays.equals(temHash,LockScript))
-            return false;
-        //验证签名
-        tem=new byte[14];
-        byte [] mac=record.getMac();
-        byte [] orderStamp=record.getOrderStamp();
-        byte [] time=record.getTime();
-        byte [] verifingSign=new byte[unLockScrpit.length-40];
-        byte [] x=new byte[20];
-        byte [] y=new byte[20];
-        System.arraycopy(unLockScrpit,0,x,0,20);
-        System.arraycopy(unLockScrpit,20,y,0,20);
-        System.arraycopy(unLockScrpit,40,verifingSign,0,verifingSign.length);
-        System.arraycopy(mac,0,tem,0,6);
-        System.arraycopy(orderStamp,0,tem,6,4);
-        System.arraycopy(time,0,tem,10,4);
-        temHash= digest.digest(tem);
-        boolean result=false;
-        try {
-            ECPublicKeyImpl publicKey = new ECPublicKeyImpl(new ECPoint(new BigInteger(1, x), new BigInteger(1, y)), ECC.spec);
-            Signature s = Signature.getInstance("SHA1withECDSA", "SunEC");
-            s.initVerify(publicKey);
-            s.update(temHash);
-            result= s.verify(verifingSign);
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (SignatureException e) {
-            e.printStackTrace();
-        } catch (NoSuchProviderException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        }
-        return result;
     }
 
 }

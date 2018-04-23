@@ -1,3 +1,4 @@
+import joy.aksd.coreThread.RequestBroadcast;
 import joy.aksd.coreThread.coreProcess;
 import joy.aksd.coreThread.creatFirstBlock;
 import joy.aksd.data.Block;
@@ -15,6 +16,8 @@ import java.util.HashSet;
 
 import static joy.aksd.data.dataInfo.*;
 import static joy.aksd.data.protocolInfo.GETIPLIST;
+import static joy.aksd.tools.checkBlock.checkBlock;
+import static joy.aksd.tools.recoverFromDisk.recoverFDisk;
 import static joy.aksd.tools.toInt.byteToInt;
 import static joy.aksd.tools.toString.byteToString;
 
@@ -56,12 +59,9 @@ public class Main2 {
             return;
         }
         try {
-            recoverFromDisk();
+            recoverFDisk();
         } catch (Exception e) {
             System.out.println("error in recover");
-//            blocks.removeLast();
-//            timeRecord.remove(timeRecord.size()-1);
-//            return;
         }
 
         //region print info
@@ -73,7 +73,7 @@ public class Main2 {
         //验证线程启动
         new verifyThread().start();
 
-//        startSyncBlock();
+        
 
         try {
             creatFirstBlock.start();
@@ -93,7 +93,9 @@ public class Main2 {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-
+        
+        startSyncBlock();
+        
         //核心线程启动
         coreWork.execute(new coreProcess());
 
@@ -140,72 +142,54 @@ public class Main2 {
     }
 
     private static void startSyncBlock() {
-        if (blocks.size()==0){//硬盘中没有
-            //从其他节点下载区块后恢复
+    	//硬盘中没有，从其他节点下载区块后恢复
+        if (blocks.size()==0){
+        	RequestBroadcast request = new RequestBroadcast();
+            try {
+                request.start();
+            }catch (Exception e){
+                System.out.println("request broadcast error ");
+            }       	
         }
+        //检查当前区块是否正确，错误则删除全部区块，重新从其他节点下载，正确则从当前区块开始下载
         else {
-            //检查当前区块是否正确，错误则删除全部区块，重新下载，正确则从当前区块开始下载
-            if (true)//检查成功
+            Block currentblock = blocks.getLast();
+            if (checkBlock(currentblock)) {
+            	System.out.println("硬盘中区块正确");
                 return;
+            }
+            else{
+                System.out.println("block error, delete all blocks and reload……");
+                File errorfile = new File(location);
+                //错误则删除本地错误内容并新建ip.txt
+                errorfile.delete();
+                File newfile = new File("blockTest");
+                if(!newfile.exists()) {
+                	try {
+                		newfile.createNewFile();
+                	}catch(IOException e) {
+                		e.printStackTrace();
+                	}
+                }
+                
+                RequestBroadcast request = new RequestBroadcast();
+                try {
+                   request.start();
+                }catch (Exception e){
+                System.out.println("request broadcast error ");
+                } 
+            }                
         }
         //区块下载完毕重新进行区块恢复
         try {
-            recoverFromDisk();
+        	File localfile = new File(location);
+        	if (localfile!=null) {
+        		recoverFDisk();
+        	}		
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
     }
-
-
-    public static void recoverFromDisk() throws IOException {
-        DataInputStream in=new DataInputStream(new FileInputStream(location));
-        long index=0;
-        byte tem[];
-        while (true){
-            //读取区块
-            tem=new byte[2];
-            in.read(tem);
-            int byteCount=byteToInt(tem);
-            if (byteCount==0)
-                break;
-            //建立索引
-            indexBlock.add(index);
-            tem=new byte[byteCount];
-            in.read(tem);
-            index+=(2+tem.length);
-            //复原区块
-            Block block=new Block(tem);
-            //添加区块缓存
-            if (blocks.size()>cacheBlockCount)//缓存最近cacheBlockCount个区块
-                blocks.remove(0);
-            blocks.addLast(block);
-            //添加time
-            if (timeRecord.size()==adjustCount)
-                timeRecord.clear();
-            timeRecord.add(byteToInt(block.getTime()));
-            //读取纪录
-            byte blockData[]=block.getData();
-            int x=0;
-            for (int i=0;i<byteToInt(block.getRecordCount());i++){
-                tem=new byte[2];
-                System.arraycopy(blockData,x,tem,0,2);
-                x+=2;
-                tem=new byte[byteToInt(tem)];
-                System.arraycopy(blockData,x,tem,0,tem.length);
-                x+=tem.length;
-                Record record=new Record(tem);
-                //添加未使用纪录
-                freshRecord.put(byteToString(record.getLockScript()),record);
-                System.out.println(record+" "+byteToString(record.getLockScript()));
-            }
-        }
-        in.close();
-        num=byteToInt(blocks.getLast().getBlockNumber());
-        System.out.println("end"+num);
-    }
-
 
     public static void printInfo(){
         System.out.println("blocks size is "+blocks.size());
