@@ -1,0 +1,14 @@
+s1a.time.edu.cn
+s1b.time.edu.cn
+s1c.time.edu.cn
+s1d.time.edu.cn
+s1e.time.edu.cn
+s2a.time.edu.cn
+s2b.time.edu.cn
+s2c.time.edu.cn
+s2d.time.edu.cn
+s2e.time.edu.cn
+s2f.time.edu.cn
+s2g.time.edu.cn
+s2h.time.edu.cn
+s2j.time.edu.cn
