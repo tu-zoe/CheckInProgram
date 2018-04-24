@@ -9,7 +9,13 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -22,8 +28,11 @@ import static joy.aksd.listenAndVerifyThread.Listener.*;
 import static joy.aksd.tools.checkRecord.verifyScriptRecord;
 import static joy.aksd.data.dataInfo.SHA256x;
 import static joy.aksd.data.dataInfo.blocks;
+import static joy.aksd.data.dataInfo.identifedRecord;
 import static joy.aksd.data.dataInfo.indexBlock;
 import static joy.aksd.data.dataInfo.location;
+import static joy.aksd.data.dataInfo.merkleTreeLimitation;
+import static joy.aksd.data.dataInfo.unPackageRecord;
 
 public class checkBlock{
 			Block currentblock = new Block();
@@ -44,11 +53,14 @@ public class checkBlock{
 		        tem[lashHash.length+merkle.length+time.length]=difficulty;
 		        System.arraycopy(nonce,0,tem,lashHash.length+merkle.length+time.length+1,nonce.length);
 		        byte []result=SHA256x.digest(tem);
-		      //2.检查区块内记录的有效性	
+		      //2.检查区块内记录的有效性
+		      //原本检查并验证单个记录得有效性，更改为：对记录重新生成Merkele树，比较Merkle树数值
             	if(currentblock.getLastHash()==result) {
     			    //读取纪录
                     byte blockData[]=block.getData();
                     int x=0;
+                  //读出所有的记录放在result中
+                    ArrayDeque<byte []> RecordResult=new ArrayDeque<>();
                     //一条一条记录读
                     for (int i=0;i<byteToInt(block.getRecordCount());i++){
                         tem=new byte[2];
@@ -57,15 +69,52 @@ public class checkBlock{
                         tem=new byte[byteToInt(tem)];
                         System.arraycopy(blockData,x,tem,0,tem.length);
                         x+=tem.length;
-                        Record record=new Record(tem);
-                        isright = verifyScriptRecord(record);
-                    }
-                    System.out.println("check result is: "+isright);
+                        
+                        RecordResult.add(tem);
+                        //Record record=new Record(tem);
+                        //isright = verifyScriptRecord(record);                   
+                          
+                    }   
+                    
+                    //开始计算Merkle树
+       		        MessageDigest digest= null;
+       		        try {
+       		            digest = MessageDigest.getInstance("SHA-256");
+       		        } catch (NoSuchAlgorithmException e) {
+       		            e.printStackTrace();
+       		        }
+       		        for (int j=0;j<RecordResult.size();j++){
+       		            byte[] tem1=RecordResult.removeFirst();
+       		            tem1=digest.digest(tem1);
+       		            RecordResult.addLast(tem1);
+       		        }
+       		        while (RecordResult.size()!=1){
+       		            ArrayDeque<byte []> temResult=new ArrayDeque<>();
+       		            while (!RecordResult.isEmpty()){
+       		                byte []left=RecordResult.removeFirst();
+       		                byte []right=null;
+       		                try {
+       		                    right = RecordResult.removeFirst();
+       		                }catch (NoSuchElementException e){}
+       		                if (right==null){
+       		                    temResult.addLast(digest.digest(left));
+       		                }
+       		                else {
+       		                    byte []tem1=new byte[left.length+right.length];
+       		                    System.arraycopy(left,0,tem1,0,left.length);
+       		                    System.arraycopy(right,0,tem1,left.length,right.length);
+       		                    temResult.addLast(digest.digest(tem1));
+       		                }
+       		            }
+       		            RecordResult=temResult;
+       		            if(RecordResult.getFirst() == block.getMerkle())
+       	                    System.out.println("check result is: "+isright);
+       		        } 
             	}
             	return isright;
 			}
-        	
-        	public static void main(String[] args) throws IOException {
+			
+        /*	public static void main(String[] args) throws IOException {
         		 DataInputStream in=new DataInputStream(new FileInputStream(location));
         		 long index=0;
         		 byte tem[];
@@ -85,7 +134,7 @@ public class checkBlock{
         	            Block block=new Block(tem);
         	            
         	        }
-        	}
+        	}*/
 }
 
 

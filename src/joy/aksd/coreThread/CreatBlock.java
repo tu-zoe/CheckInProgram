@@ -94,6 +94,7 @@ public class CreatBlock {
                 block.setData(new byte[0]);
                 return new byte[32];
             }
+            //从identifedRecord中取出64条记录并添加到unPackageRecord中
             Iterator<Record> it = identifedRecord.iterator();
             int i = 0;
             while (i++ < merkleTreeLimitation && it.hasNext()) {
