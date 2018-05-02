@@ -14,6 +14,7 @@ import java.util.NoSuchElementException;
 import static joy.aksd.data.dataInfo.*;
 import static joy.aksd.tools.toByte.intToByte;
 import static joy.aksd.tools.toInt.byteToInt;
+import static joy.aksd.tools.GenMerkTree.GenMerkleTree;
 
 /** 创建区块
  * Created by EnjoyD on 2017/4/18.
@@ -118,30 +119,41 @@ public class CreatBlock {
             System.out.println(Arrays.toString(tem));
         }
         block.setData(BlockData);
+        
+        //得到Merkle树节点
+        return GenMerkleTree(block);
+        
         //开始计算merkle tree root
-        MessageDigest digest= null;
+        /*MessageDigest digest= null;
         try {
             digest = MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
+        //对result从头到尾依次remove，生成摘要重新放回到resul中
         for (int i=0;i<result.size();i++){
             byte tem[]=result.removeFirst();
             tem=digest.digest(tem);
             result.addLast(tem);
         }
+        //只对最后一层叶子结点向上做了一层合并。
         while (result.size()!=1){
             ArrayDeque<byte []> temResult=new ArrayDeque<>();
             while (!result.isEmpty()){
+            	//左叶子
                 byte []left=result.removeFirst();
+                //右叶子为空
                 byte []right=null;
                 try {
+                	//右叶子节点赋值
                     right = result.removeFirst();
                 }catch (NoSuchElementException e){}
+                //如果是奇数个节点，复制左叶子节点
                 if (right==null){
                     temResult.addLast(digest.digest(left));
                 }
                 else {
+                	//合并左右叶子结点，对合并结果hash
                     byte []tem=new byte[left.length+right.length];
                     System.arraycopy(left,0,tem,0,left.length);
                     System.arraycopy(right,0,tem,left.length,right.length);
@@ -151,6 +163,7 @@ public class CreatBlock {
             result=temResult;
         }
         return result.getFirst();
+        */
     }
 
     private byte[] getLashHashValue() throws NoSuchAlgorithmException {
