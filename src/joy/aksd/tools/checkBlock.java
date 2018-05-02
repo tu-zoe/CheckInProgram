@@ -33,6 +33,9 @@ import static joy.aksd.data.dataInfo.indexBlock;
 import static joy.aksd.data.dataInfo.location;
 import static joy.aksd.data.dataInfo.merkleTreeLimitation;
 import static joy.aksd.data.dataInfo.unPackageRecord;
+import static joy.aksd.tools.readRecordFromBlock.readReFromBlock;
+import static joy.aksd.tools.GenMerkTree.calMerTree;
+import static joy.aksd.tools.toString.byteToString;
 
 public class checkBlock{
 			Block currentblock = new Block();
@@ -53,66 +56,23 @@ public class checkBlock{
 		        tem[lashHash.length+merkle.length+time.length]=difficulty;
 		        System.arraycopy(nonce,0,tem,lashHash.length+merkle.length+time.length+1,nonce.length);
 		        byte []result=SHA256x.digest(tem);
-		      //2.检查区块内记录的有效性
+		      //2.通过Merkle树检查区块内记录的有效性
 		      //原本检查并验证单个记录得有效性，更改为：对记录重新生成Merkele树，比较Merkle树数值
             	if(currentblock.getLastHash()==result) {
-    			    //读取纪录
-                    byte blockData[]=block.getData();
-                    int x=0;
-                  //读出所有的记录放在result中
-                    ArrayDeque<byte []> RecordResult=new ArrayDeque<>();
-                    //一条一条记录读
-                    for (int i=0;i<byteToInt(block.getRecordCount());i++){
-                        tem=new byte[2];
-                        System.arraycopy(blockData,x,tem,0,2);
-                        x+=2;//记录的前两个字节也是记录记录长度的
-                        tem=new byte[byteToInt(tem)];
-                        System.arraycopy(blockData,x,tem,0,tem.length);
-                        x+=tem.length;
-                        
-                        RecordResult.add(tem);
-                        //Record record=new Record(tem);
-                        //isright = verifyScriptRecord(record);                   
-                          
-                    }   
-                    
-                    //开始计算Merkle树
-       		        MessageDigest digest= null;
-       		        try {
-       		            digest = MessageDigest.getInstance("SHA-256");
-       		        } catch (NoSuchAlgorithmException e) {
-       		            e.printStackTrace();
-       		        }
-       		        for (int j=0;j<RecordResult.size();j++){
-       		            byte[] tem1=RecordResult.removeFirst();
-       		            tem1=digest.digest(tem1);
-       		            RecordResult.addLast(tem1);
-       		        }
-       		        while (RecordResult.size()!=1){
-       		            ArrayDeque<byte []> temResult=new ArrayDeque<>();
-       		            while (!RecordResult.isEmpty()){
-       		                byte []left=RecordResult.removeFirst();
-       		                byte []right=null;
-       		                try {
-       		                    right = RecordResult.removeFirst();
-       		                }catch (NoSuchElementException e){}
-       		                if (right==null){
-       		                    temResult.addLast(digest.digest(left));
-       		                }
-       		                else {
-       		                    byte []tem1=new byte[left.length+right.length];
-       		                    System.arraycopy(left,0,tem1,0,left.length);
-       		                    System.arraycopy(right,0,tem1,left.length,right.length);
-       		                    temResult.addLast(digest.digest(tem1));
-       		                }
-       		            }
-       		            RecordResult=temResult;
-       		            if(RecordResult.getFirst() == block.getMerkle())
-       	                    System.out.println("check result is: "+isright);
-       		        } 
-            	}
+            		//读出所有的记录放在RecordResult中
+                    ArrayDeque<byte []> RecordResult=new ArrayDeque<>(readReFromBlock(block));
+                    //得到根节点比较
+                    byte[] MerRootNode = calMerTree(RecordResult);
+                    if(currentblock.getMerkle() == MerRootNode) {
+                    	isright = true;
+                    }                                              
+                 }  
+            	
             	return isright;
-			}
+         }	
+																						
+}
+
 			
         /*	public static void main(String[] args) throws IOException {
         		 DataInputStream in=new DataInputStream(new FileInputStream(location));
@@ -135,7 +95,7 @@ public class checkBlock{
         	            
         	        }
         	}*/
-}
+
 
 
 

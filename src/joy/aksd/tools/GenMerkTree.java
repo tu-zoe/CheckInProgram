@@ -4,6 +4,7 @@ import static joy.aksd.data.dataInfo.identifedRecord;
 import static joy.aksd.data.dataInfo.merkleTreeLimitation;
 import static joy.aksd.data.dataInfo.unPackageRecord;
 import static joy.aksd.tools.toInt.byteToInt;
+import static joy.aksd.tools.readRecordFromBlock.readReFromBlock;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -31,25 +32,11 @@ public class GenMerkTree {
 	
 	public static byte[] GenMerkleTree(Block block) {
 		 //读取纪录
-        byte blockData[]=block.getData();
-        int x=0; 
-		//先从块中读取所有记录存在result中
-		 ArrayDeque<byte []> result=new ArrayDeque<>();
-		 for (int i=0;i<byteToInt(block.getRecordCount());i++){
-             byte[] tem=new byte[2];
-             System.arraycopy(blockData,x,tem,0,2);
-             x+=2;//记录的前两个字节也是记录记录长度的
-             tem=new byte[byteToInt(tem)];
-             System.arraycopy(blockData,x,tem,0,tem.length);
-             x+=tem.length;
-             result.add(tem);
-          }
-		 
+		 ArrayDeque<byte []> result=new ArrayDeque<>(readReFromBlock(block));
 		 byte[] MerRootNode = calMerTree(result);
 		 saveMer(block);
-		 return MerRootNode;
 		 
-
+		 return MerRootNode;
 	}
 	
 	//生成MerTree，并保存在block的data中。
