@@ -89,7 +89,7 @@ public class Qurry {
 		return ar;
 	}
 	
-	public ArrayDeque<byte[]> QurryRecordByBlocknum(int blocknum){//通过块号查询记录
+	public static ArrayDeque<byte[]> QurryRecordByBlocknum(int blocknum){//通过块号查询记录
 		Base64.Decoder decoder=Base64.getDecoder();
 		String sql="select * from record_copy where blocknum= "+blocknum+" order by orderStamp DESC";
 		ResultSet rs=DatabaseHelper.query(sql);
@@ -116,6 +116,42 @@ public class Qurry {
 		}
 		return ar;
 	}
+	
+	public Block QurryBlockByRecord(Record record) {//通过记录查询其所在的块并把块返回。
+		Base64.Decoder decoder=Base64.getDecoder();
+		String sql = "select * from block where blockNumber = "+ record.getBlocknum();
+		ResultSet rs=DatabaseHelper.query(sql);
+		Block block=new Block();
+		try {
+			while(rs.next()) {
+					String lastHash=rs.getString("lastHash");
+					String merkle=rs.getString("Merkle");
+					int time=rs.getInt("time");
+					int difficulty=rs.getInt("difficulty");
+					int nonce=rs.getInt("nonce");
+					int cumul=rs.getInt("cumulativeDifficulty");
+					int blockNumber=rs.getInt("blockNumber");
+					int recordCount=rs.getInt("recordCount");
+					String data=rs.getString("data");
+					block.setLastHash(decoder.decode(lastHash));
+					block.setMerkle(decoder.decode(merkle));
+					block.setTime(intToByte(time));
+					block.setDifficulty(intToOneByte(difficulty));
+					block.setNonce(intToByte(nonce));
+					block.setCumulativeDifficulty(intToByte(cumul));
+					block.setBlockNumber(blockNumber);
+					block.setRecordCount(recordCount);
+					block.setData(decoder.decode(data));
+			}	
+		}catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return block;
+	}
+	
+	
 	
 	public ArrayList<Record> QurryRecordByLockScript(int count)//通过锁查询记录byte[] lockscript,
 	{

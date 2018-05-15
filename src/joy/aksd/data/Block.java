@@ -128,7 +128,7 @@ public class Block implements Serializable{
      * @return 头部长度
      */
     public int getBlockByteNum(){
-        return 32+32+4+4+1+4;
+        return 32+32+4+4+1+4+3+2;
     }
 
     @Override

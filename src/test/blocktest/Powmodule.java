@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 
 import joy.aksd.data.Block;
 import joy.aksd.data.Record;
-import joy.aksd.data.Recorded;
 
 public class Powmodule {
 	public void start(Block block) throws NoSuchAlgorithmException, InterruptedException {
