@@ -6,6 +6,7 @@ import org.junit.internal.ArrayComparisonFailure;
 import joy.aksd.data.Block;
 import joy.aksd.data.Record;
 import joy.aksd.tools.DatabaseHelper;
+import joy.aksd.tools.DerbyDatabaseHelper;
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
 import sun.security.ec.ECPrivateKeyImpl;
@@ -43,6 +44,42 @@ import static joy.aksd.tools.toByte.intToByte;
 import static joy.aksd.tools.readAndPrintData.printRecord;
 
 public class BlockTest {
+	@Test
+	public void derbyrecovertest(){//检查sql中数据正确性，不正确则从block中恢复
+		if(DerbyDatabaseHelper.doesTableExist("block")||DerbyDatabaseHelper.doesTableExist("record"))
+		{
+			DerbyDatabaseHelper.drop();
+		}
+		if(!DerbyDatabaseHelper.doesTableExist("block")&&!DerbyDatabaseHelper.doesTableExist("record"))
+			DerbyDatabaseHelper.init();
+		Qurry qurry=new Qurry();
+		ReadBlock read=new ReadBlock();
+		WriteIntoSql writesql=new WriteIntoSql();
+		LinkedList<Block> block=new LinkedList<Block>();
+		LinkedList<Record> ar=new LinkedList<Record>();
+		//block=qurry.findallBlock();
+		//ar=qurry.findallRecord();
+		//DatabaseHelper.init();
+		try {
+			boolean b=qurry.checkblock(block, ar);
+			if(!b)
+			{
+				LinkedList<Block> blocklist=new LinkedList<Block>();
+				LinkedList<Record> recordlist=new LinkedList<Record>();
+				read.readblock(blocklist);
+				for(int i=0;i<blocklist.size();i++)
+				{
+					recordlist.addAll(read.getRecordinBlock(blocklist.get(i)));
+				}
+				writesql.recoverBlock(blocklist, recordlist);
+			}
+			else
+				System.out.println(b);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	@Test
 	public void test() throws InterruptedException
 	{
@@ -90,7 +127,7 @@ public class BlockTest {
 			{
 				LinkedList<Block> blocklist=new LinkedList<Block>();
 				LinkedList<Record> recordlist=new LinkedList<Record>();
-				read.readblock(blocklist, recordlist);
+				//read.readblock(blocklist, recordlist);
 				writesql.recoverBlock(blocklist, recordlist);
 			}
 			else
@@ -110,7 +147,7 @@ public class BlockTest {
 		LinkedList<Block> block=new LinkedList<Block>();
 		LinkedList<Record> ar=new LinkedList<Record>();
 		try {
-			rb.readblock(block, ar);
+			rb.readblock(block);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

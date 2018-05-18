@@ -19,41 +19,21 @@ import static joy.aksd.tools.toString.byteToString;
 
 public class ReadBlock {
 
-	public void readblock(LinkedList<Block> blocklist,LinkedList<Record> recordlist) throws FileNotFoundException{
+	public void readblock(LinkedList<Block> blocklist) throws FileNotFoundException{//,LinkedList<Record> recordlist
+		//读取和建立索引可以分开，读取可以考虑是否需要记录的链表
+		
     	
 		RandomAccessFile file=new RandomAccessFile("blockTest","r");
         try {
         	while(file.getFilePointer()!=file.length())
         	{
-        		
-        	Block block=new Block();
         	byte[] head=new byte[2];
-    		byte[] lasthash=new byte[32];
-    		byte[] merkle=new byte[32];
-    		byte[] time=new byte[4];
-    		byte diff;
-        	byte[] nonce=new byte[4];
-        	byte[] culdiff=new byte[4];
-        	byte[] blocknum=new byte[3];
-        	byte[] recordcount=new byte[2];
             file.read(head);
-            file.read(lasthash);
-            file.read(merkle);
-            file.read(time);
-            diff=file.readByte();
-            file.read(nonce);
-            file.read(blocknum);
-            file.read(culdiff);
-            file.read(recordcount);
-            block.setLastHash(lasthash);
-            block.setMerkle(merkle);
-            block.setTime(time);
-            block.setDifficulty(diff);
-            block.setCumulativeDifficulty(culdiff);
-            block.setRecordCount(byteToInt(recordcount));
-            block.setNonce(nonce);
-            block.setBlockNumber(byteToInt(blocknum));
-            if(byteToInt(recordcount)!=0)
+            byte[] tem=new byte[byteToInt(head)];
+            file.read(tem);
+            Block block=new Block(tem);
+            blocklist.add(block);
+           /* if(byteToInt(recordcount)!=0)
             {
             	ArrayDeque<byte []> result=new ArrayDeque<>();
      	        int bytes=0;
@@ -104,14 +84,37 @@ public class ReadBlock {
             }
            
 
+        	}*/
         	}
-        	
             file.close();
         }catch (IOException e) {
             System.out.println("error in readBlock");
         }
 
 
+	}
+	public LinkedList<Record> getRecordinBlock(Block block)
+	{
+		LinkedList<Record> lr=new LinkedList<Record>();
+		int locate=0;
+		
+		byte[] byterecord=block.getData();
+		int count=byteToInt(block.getRecordCount());
+		for(int i=0;i<count;i++)
+		{
+			byte[] head=new byte[2];
+			System.arraycopy(byterecord, locate, head, 0, 2);
+			int length=byteToInt(head);
+			byte[] tem=new byte[length];
+			locate=locate+2;
+			System.arraycopy(byterecord, locate, tem, 0, length);
+			Record record=new Record(tem);
+			record.setBlocknum(byteToInt(block.getBlockNumber()));
+			lr.add(record);
+			locate+=length;
+		}
+		return lr;
+		
 	}
 	
 
